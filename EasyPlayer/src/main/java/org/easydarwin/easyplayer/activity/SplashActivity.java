@@ -4,13 +4,14 @@ import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
 import org.easydarwin.easyplayer.R;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 
 /**
  * 启动页
@@ -88,6 +89,7 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        InsetsHelper.applyBottomPadding(findViewById(R.id.root));
 
         String versionName;
 

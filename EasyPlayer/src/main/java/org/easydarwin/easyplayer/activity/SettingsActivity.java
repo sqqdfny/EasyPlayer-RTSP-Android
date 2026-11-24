@@ -1,15 +1,16 @@
 package org.easydarwin.easyplayer.activity;
 
-import android.databinding.DataBindingUtil;
+import androidx.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.CompoundButton;
 
 import org.easydarwin.easyplayer.R;
 import org.easydarwin.easyplayer.databinding.ActivitySettingBinding;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 import org.easydarwin.easyplayer.util.SPUtil;
 
 /**
@@ -30,6 +31,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_setting);
+        InsetsHelper.applyBottomPadding(mBinding.getRoot());
 
         setSupportActionBar(mBinding.toolbar);
         mBinding.toolbarBack.setOnClickListener(new View.OnClickListener() {

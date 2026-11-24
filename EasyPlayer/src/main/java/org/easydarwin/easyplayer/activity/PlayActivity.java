@@ -1,13 +1,10 @@
 package org.easydarwin.easyplayer.activity;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.databinding.DataBindingUtil;
+import androidx.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -17,10 +14,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.MenuItem;
@@ -48,8 +47,6 @@ import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
  * 播放页
  * */
 public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDoubleTapListener {
-
-    private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 0x111;
 
     private PlayFragment mRenderFragment;
 
@@ -183,35 +180,41 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
         } else {
             vertical();
         }
+
+        // edge-to-edge：横屏时底部控制栏需要避开导航栏，左右避开刘海区域
+        ViewCompat.setOnApplyWindowInsetsListener(mBinding.playerLl, new OnApplyWindowInsetsListener() {
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(View v, WindowInsetsCompat insets) {
+                Insets bars = insets.getInsets(
+                        WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) mBinding.liveVideoBar.getLayoutParams();
+                lp.bottomMargin = isLandscape() ? bars.bottom : 0;
+                mBinding.liveVideoBar.setLayoutParams(lp);
+                mBinding.liveVideoBar.setPadding(bars.left, mBinding.liveVideoBar.getPaddingTop(),
+                        bars.right, mBinding.liveVideoBar.getPaddingBottom());
+                return insets;
+            }
+        });
+        ViewCompat.requestApplyInsets(mBinding.playerLl);
+
+        // 预测性返回：横屏时先转回竖屏，无法改变方向时退出播放页
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (isLandscape() && canChangeOrientation()) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//竖屏
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
     }
 
     @Override
     protected void onDestroy() {
         releaseSoundPool();
         super.onDestroy();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE:
-            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE + 1: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the contacts-related task you need to do.
-
-                    if (requestCode == MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE) {
-                        onTakePicture(mBinding.liveVideoBarTakePicture);
-                    } else {
-                        onRecordOrStop(mBinding.liveVideoBarRecord);
-                    }
-                } else {
-                    // permission denied, boo! Disable the functionality that depends on this permission.
-                }
-
-                return;
-            }
-        }
     }
 
     @Override
@@ -222,15 +225,6 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
             landscape();
         } else {
             vertical();
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (isLandscape()) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//竖屏
-        } else {
-            super.onBackPressed();
         }
     }
 
@@ -262,38 +256,21 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
 
     /* ====================== private method ====================== */
 
-    private void requestWriteStorage(final boolean toTakePicture) {
-        // Should we show an explanation?
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-
-            // Show an expanation to the user *asynchronously* -- don't block
-            // this thread waiting for the user's response! After the user
-            // sees the explanation, try again to request the permission.
-
-            new AlertDialog.Builder(this).setMessage(toTakePicture ? "EasyPlayer需要使用写文件权限来抓拍" : "EasyPlayer需要使用写文件权限来录像").setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    ActivityCompat.requestPermissions(PlayActivity.this,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE + (toTakePicture ? 0 : 1));
-                }
-            }).show();
-        } else {
-            // No explanation needed, we can request the permission.
-
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE + (toTakePicture ? 0 : 1));
-
-            // MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE is an
-            // app-defined int constant. The callback method gets the
-            // result of the request.
-        }
-    }
-
     // 是否横屏
     private boolean isLandscape() {
         int orientation = getResources().getConfiguration().orientation;
         return orientation == ORIENTATION_LANDSCAPE;
+    }
+
+    // 分屏、大屏等场景下系统会忽略方向请求
+    private boolean canChangeOrientation() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode()) {
+            return false;
+        }
+
+        // Android 16 起，targetSdk 36 的应用在小宽度 >= 600dp 的大屏上无法锁定方向
+        return Build.VERSION.SDK_INT < 36
+                || getResources().getConfiguration().smallestScreenWidthDp < 600;
     }
 
     // 横屏
@@ -312,6 +289,8 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
         mBinding.renderHolder.getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
         mBinding.renderHolder.getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
         mRenderFragment.enterFullscreen();
+
+        ViewCompat.requestApplyInsets(mBinding.playerLl);
     }
 
     // 竖屏
@@ -331,6 +310,8 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
         mBinding.renderHolder.getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
         mBinding.renderHolder.getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
         mRenderFragment.quiteFullscreen();
+
+        ViewCompat.requestApplyInsets(mBinding.playerLl);
     }
 
     public void setNavVisibility(boolean visible) {
@@ -427,35 +408,23 @@ public class PlayActivity extends AppCompatActivity implements PlayFragment.OnDo
 
     // 截屏
     public void onTakePicture(View view) {
-        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        mRenderFragment.takePicture(FileUtil.getPictureName(url).getPath());
 
-        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-            mRenderFragment.takePicture(FileUtil.getPictureName(url).getPath());
-
-            if (mSoundPool != null) {
-                mSoundPool.play(mTalkPictureSound, mAudioVolumn, mAudioVolumn, 1, 0, 1.0f);
-            }
-        } else {
-            requestWriteStorage(true);
+        if (mSoundPool != null) {
+            mSoundPool.play(mTalkPictureSound, mAudioVolumn, mAudioVolumn, 1, 0, 1.0f);
         }
     }
 
     // 开启/关闭录像
     public void onRecordOrStop(View view) {
-        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (mRenderFragment != null) {
+            boolean recording = mRenderFragment.onRecordOrStop();
 
-        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-            if (mRenderFragment != null) {
-                boolean recording = mRenderFragment.onRecordOrStop();
+            ImageView mPlayAudio = (ImageView) view;
+            mPlayAudio.setImageState(recording ? new int[]{android.R.attr.state_checked} : new int[]{}, true);
 
-                ImageView mPlayAudio = (ImageView) view;
-                mPlayAudio.setImageState(recording ? new int[]{android.R.attr.state_checked} : new int[]{}, true);
-
-                if (recording)
-                    mPlayAudio.postDelayed(mResetRecordStateRunnable, 200);
-            }
-        } else {
-            requestWriteStorage(false);
+            if (recording)
+                mPlayAudio.postDelayed(mResetRecordStateRunnable, 200);
         }
     }
 

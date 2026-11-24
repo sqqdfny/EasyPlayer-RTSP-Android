@@ -7,19 +7,19 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.databinding.DataBindingUtil;
+import androidx.activity.OnBackPressedCallback;
+import androidx.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.SwitchCompat;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.view.View;
@@ -44,15 +44,13 @@ import org.easydarwin.easyplayer.data.VideoSource;
 import org.easydarwin.easyplayer.databinding.ActivityPlayListBinding;
 import org.easydarwin.easyplayer.databinding.VideoSourceItemBinding;
 import org.easydarwin.easyplayer.util.FileUtil;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 import org.easydarwin.easyplayer.util.SPUtil;
-import org.easydarwin.update.UpdateMgr;
 
 import java.io.File;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
-
-import static org.easydarwin.update.UpdateMgr.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
 /**
  * 视频广场
@@ -72,8 +70,6 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
 
     private Cursor mCursor;
 
-    private UpdateMgr update;
-
     private long mExitTime;//声明一个long类型变量：用于存放上一点击“返回键”的时刻
 
     @Override
@@ -87,6 +83,24 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
         }
 
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_play_list);
+        InsetsHelper.applyBottomPadding(mBinding.bottomLl);
+
+        // 预测性返回：保留“再按一次退出程序”的行为
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                //与上次点击返回键时刻作差
+                if ((System.currentTimeMillis() - mExitTime) > 2000) {
+                    //大于2000ms则认为是误操作，使用Toast进行提示
+                    Toast.makeText(PlayListActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                    //并记录下本次点击“返回键”的时刻，以便下次进行判断
+                    mExitTime = System.currentTimeMillis();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         setSupportActionBar(mBinding.toolbar);
         notifyAboutColorChange();
@@ -188,17 +202,6 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
                 startActivity(new Intent(PlayListActivity.this, AboutActivity.class));
             }
         });
-
-        /* ==================== 版本更新 ==================== */
-        String url;
-        if (PlayListActivity.isPro()) {
-            url = "http://www.easydarwin.org/versions/easyplayer_pro/version.txt";
-        } else {
-            url = "http://www.easydarwin.org/versions/easyplayer-rtmp/version.txt";
-        }
-
-        update = new UpdateMgr(this);
-        update.checkUpdate(url);
     }
 
     @Override
@@ -209,19 +212,9 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    update.doDownload();
-                }
-            case REQUEST_CAMERA_PERMISSION: {
-                if (grantResults.length > 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                    toScanQRActivity();
-                }
-
-                break;
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                toScanQRActivity();
             }
         }
     }
@@ -300,19 +293,6 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
         return true;
     }
 
-    @Override
-    public void onBackPressed() {
-        //与上次点击返回键时刻作差
-        if ((System.currentTimeMillis() - mExitTime) > 2000) {
-            //大于2000ms则认为是误操作，使用Toast进行提示
-            Toast.makeText(this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
-            //并记录下本次点击“返回键”的时刻，以便下次进行判断
-            mExitTime = System.currentTimeMillis();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
     private void displayDialog(final int pos) {
         String url = "rtsp://";
 
@@ -350,10 +330,9 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 动态获取camera和audio权限
-                if (ActivityCompat.checkSelfPermission(PlayListActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
-                        || ActivityCompat.checkSelfPermission(PlayListActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(PlayListActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, REQUEST_CAMERA_PERMISSION);
+                // 动态获取camera权限
+                if (ActivityCompat.checkSelfPermission(PlayListActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(PlayListActivity.this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
                 } else {
                     toScanQRActivity();
                 }
@@ -434,7 +413,7 @@ public class PlayListActivity extends AppCompatActivity implements View.OnClickL
     }
 
     public static boolean isPro() {
-        return BuildConfig.FLAVOR.equals("pro");
+        return false;
     }
 
     public void onMultiPlay(View view) {

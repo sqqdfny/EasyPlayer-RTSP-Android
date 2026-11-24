@@ -1,7 +1,7 @@
 package org.easydarwin.easyplayer.activity;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
@@ -11,6 +11,7 @@ import android.widget.Toast;
 import org.easydarwin.easyplayer.R;
 import org.easydarwin.easyplayer.fragments.PlayFragment;
 import org.easydarwin.easyplayer.fragments.YUVExportFragment;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 import org.easydarwin.easyplayer.util.SPUtil;
 import org.easydarwin.video.Client;
 
@@ -32,6 +33,7 @@ public class YUVExportActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.yuv_export_activity);
+        InsetsHelper.applyTopLeftMargin(findViewById(R.id.control_bar));
 
         if (savedInstanceState == null) {
             boolean useUDP = SPUtil.getUDPMode(this);

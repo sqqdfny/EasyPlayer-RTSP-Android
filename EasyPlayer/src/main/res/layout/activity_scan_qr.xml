@@ -22,6 +22,7 @@
         app:maskColor="#66000000"/>
 
     <ImageView
+        android:id="@+id/close_button"
         android:layout_width="56dp"
         android:src="@drawable/new_nav_back"
         android:padding="18dp"

@@ -2,8 +2,8 @@ package org.easydarwin.easyplayer.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -14,6 +14,7 @@ import com.budiyev.android.codescanner.ScanMode;
 import com.google.zxing.Result;
 
 import org.easydarwin.easyplayer.R;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 
 public class ScanQRActivity extends AppCompatActivity {
 
@@ -23,6 +24,7 @@ public class ScanQRActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_qr);
+        InsetsHelper.applyTopLeftMargin(findViewById(R.id.close_button));
 
         CodeScannerView scannerView = findViewById(R.id.scanner_view);
 

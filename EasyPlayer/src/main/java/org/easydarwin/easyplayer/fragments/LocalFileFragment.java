@@ -2,14 +2,15 @@ package org.easydarwin.easyplayer.fragments;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.databinding.DataBindingUtil;
+import androidx.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -142,8 +143,7 @@ public class LocalFileFragment extends Fragment implements CompoundButton.OnChec
         }
 
         File f = new File(path);
-        Uri uri = Uri.fromFile(f);
-//        Uri uri = FileProvider.getUriForFile(getActivity(), getString(R.string.org_easydarwin_update_authorities), new File(path));
+        Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
 
         Intent intent = new Intent();
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

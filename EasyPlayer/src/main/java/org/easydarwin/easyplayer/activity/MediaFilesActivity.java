@@ -1,14 +1,13 @@
 package org.easydarwin.easyplayer.activity;
 
-import android.databinding.DataBindingUtil;
+import androidx.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StrictMode;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
@@ -19,6 +18,7 @@ import android.view.View;
 import org.easydarwin.easyplayer.R;
 import org.easydarwin.easyplayer.databinding.ActivityMediaFilesBinding;
 import org.easydarwin.easyplayer.fragments.LocalFileFragment;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 
 /**
  * 录像和截图
@@ -38,6 +38,7 @@ public class MediaFilesActivity extends AppCompatActivity {
         }
 
         mDataBinding = DataBindingUtil.setContentView(this, R.layout.activity_media_files);
+        InsetsHelper.applyBottomPadding(mDataBinding.getRoot());
 
         final String url = getIntent().getStringExtra("play_url");
 
@@ -75,12 +76,6 @@ public class MediaFilesActivity extends AppCompatActivity {
                 return ssb;
             }
         });
-
-        //取消严格模式  FileProvider
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-            StrictMode.setVmPolicy(builder.build());
-        }
     }
 
     @Override

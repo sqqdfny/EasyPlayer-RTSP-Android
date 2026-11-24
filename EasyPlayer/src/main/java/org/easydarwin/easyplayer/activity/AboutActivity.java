@@ -1,12 +1,12 @@
 package org.easydarwin.easyplayer.activity;
 
 import android.content.Intent;
-import android.databinding.DataBindingUtil;
+import androidx.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -14,6 +14,7 @@ import android.view.View;
 
 import org.easydarwin.easyplayer.R;
 import org.easydarwin.easyplayer.databinding.ActivityAboutBinding;
+import org.easydarwin.easyplayer.util.InsetsHelper;
 
 public class AboutActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String EP_URL = "https://github.com/EasyDSS/EasyPlayer";
@@ -31,6 +32,7 @@ public class AboutActivity extends AppCompatActivity implements View.OnClickList
         }
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_about);
+        InsetsHelper.applyBottomPadding(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
         binding.toolbarBack.setOnClickListener(new View.OnClickListener() {

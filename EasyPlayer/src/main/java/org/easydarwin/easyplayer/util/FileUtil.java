@@ -1,6 +1,6 @@
 package org.easydarwin.easyplayer.util;
 
-import android.os.Environment;
+import android.content.Context;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -8,7 +8,13 @@ import java.util.Date;
 
 public class FileUtil {
 
-    private static String path = Environment.getExternalStorageDirectory() +"/EasyPlayerRTSP";
+    private static String path;
+
+    public static void init(Context context) {
+        File external = context.getExternalFilesDir(null);
+        File base = external != null ? external : context.getFilesDir();
+        path = new File(base, "EasyPlayerRTSP").getAbsolutePath();
+    }
 
     public static String getPicturePath(String url) {
         return path + "/" + urlDir(url) + "/picture";

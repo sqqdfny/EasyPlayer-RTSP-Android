@@ -14,12 +14,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.support.annotation.IntRange;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewCompat;
-import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
-import android.support.v7.app.AlertDialog;
+import androidx.annotation.IntRange;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.ViewPropertyAnimatorListenerAdapter;
+import androidx.appcompat.app.AlertDialog;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -279,8 +279,11 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
 
     @Override
     public void onDestroyView() {
-        ViewGroup parent = (ViewGroup) getView().getParent();
-        parent.removeOnLayoutChangeListener(listener);
+        View view = getView();
+        ViewGroup parent = view == null ? null : (ViewGroup) view.getParent();
+        if (parent != null) {
+            parent.removeOnLayoutChangeListener(listener);
+        }
         super.onDestroyView();
     }
 

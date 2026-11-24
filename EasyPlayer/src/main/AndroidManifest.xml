@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="org.easydarwin.easyplayer">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
-
-    <uses-permission android:name="android.permission.READ_LOGS" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 
     <application
@@ -35,6 +28,7 @@
 
         <activity
             android:name=".activity.PlayListActivity"
+            android:exported="true"
             android:label="EasyPlayer">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -72,6 +66,16 @@
         <activity
             android:name=".activity.MultiPlayActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"></activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

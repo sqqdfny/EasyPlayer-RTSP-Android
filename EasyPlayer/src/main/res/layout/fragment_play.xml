@@ -66,4 +66,41 @@
         android:textColor="#fff"
         android:layout_gravity="right|top"
         android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:id="@+id/disconnect_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_player_disconnect_tip"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingLeft="24dp"
+        android:paddingTop="16dp"
+        android:paddingRight="24dp"
+        android:paddingBottom="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/disconnect_tip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="连接已断开"
+            android:textColor="@color/color_white"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/disconnect_reconnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/color_theme2"
+            android:minWidth="100dp"
+            android:minHeight="36dp"
+            android:text="重连"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+    </LinearLayout>
 </FrameLayout>

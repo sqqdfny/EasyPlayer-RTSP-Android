@@ -1595,6 +1595,7 @@ public class EasyPlayerClient implements Client.SourceCallBack {
     public void onEvent(int channel, int err, int info) {
         ResultReceiver rr = mRR;
         Bundle resultData = new Bundle();
+        resultData.putInt("state", info);
         /*
             int state = 0;
         int err = EasyRTSP_GetErrCode(fRTSPHandle);

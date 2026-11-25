@@ -31,6 +31,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -101,11 +102,36 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
     private SurfaceTexture mSurfaceTexture;
     protected ImageView cover;
 
+    private View mDisconnectPanel;
+    private TextView mDisconnectTip;
+    private boolean mHasDisplayedVideo;
+    private long mLastCheckLength;
+
     private MediaScannerConnection mScanner;
 
     private AsyncTask<Void, Void, Bitmap> mLoadingPictureThumbTask;
 
     private OnDoubleTapListener doubleTapListener;
+
+    private final Handler mHandler = new Handler();
+
+    // 断线浮层显示期间，每秒检查收流是否恢复，恢复后自动隐藏浮层
+    private final Runnable mStreamCheckRunnable = new Runnable() {
+        @Override
+        public void run() {
+            long length = getReceivedStreamLength();
+
+            if (length > mLastCheckLength) {
+                hideDisconnectPanel();
+            } else {
+                mLastCheckLength = length;
+
+                if (mDisconnectPanel != null && mDisconnectPanel.getVisibility() == View.VISIBLE) {
+                    mHandler.postDelayed(this, 1000);
+                }
+            }
+        }
+    };
 
     // 抓拍后隐藏thumb的task
     private final Runnable mAnimationHiddenTakePictureThumbTask = new Runnable() {
@@ -174,6 +200,17 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
         mRenderCover = (ImageView) getView().findViewById(R.id.surface_cover);
         mTakePictureThumb = (ImageView) getView().findViewById(R.id.live_video_snap_thumb);
 
+        mDisconnectPanel = view.findViewById(R.id.disconnect_panel);
+        if (mDisconnectPanel != null) {
+            mDisconnectTip = (TextView) mDisconnectPanel.findViewById(R.id.disconnect_tip);
+            mDisconnectPanel.findViewById(R.id.disconnect_reconnect).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    reconnect();
+                }
+            });
+        }
+
         mResultReceiver = new ResultReceiver(new Handler()) {
             @Override
             protected void onReceiveResult(int resultCode, Bundle resultData) {
@@ -190,6 +227,7 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
                         Log.i(TAG, "视频解码方式:" + (videoDecodeType == 0 ? "软解码" : "硬解码"));
                     }
 
+                    mHasDisplayedVideo = true;
                     onVideoDisplayed();
                 } else if (resultCode == EasyPlayerClient.RESULT_VIDEO_SIZE) {
                     mWidth = resultData.getInt(EasyPlayerClient.EXTRA_VIDEO_WIDTH);
@@ -203,13 +241,20 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
                 } else if (resultCode == EasyPlayerClient.RESULT_UNSUPPORTED_VIDEO) {
                     new AlertDialog.Builder(getActivity()).setMessage("视频格式不支持").setTitle("SORRY").setPositiveButton(android.R.string.ok, null).show();
                 } else if (resultCode == EasyPlayerClient.RESULT_EVENT) {
+                    if (resultData == null)
+                        return;
+
                     int errorCode = resultData.getInt("errorcode");
+                    int state = resultData.getInt("state");
 //                    if (errorCode != 0) {
 //                        stopRending();
 //                    }
 
+                    if (state == 2 || state == 3) {
+                        showDisconnectPanel();
+                    }
+
                     if (activity instanceof PlayActivity) {
-                        int state = resultData.getInt("state");
                         String msg = resultData.getString("event-msg");
                         ((PlayActivity) activity).onEvent(PlayFragment.this, state, errorCode, msg);
                     }
@@ -279,6 +324,10 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
 
     @Override
     public void onDestroyView() {
+        mHandler.removeCallbacks(mStreamCheckRunnable);
+        mDisconnectPanel = null;
+        mDisconnectTip = null;
+
         View view = getView();
         ViewGroup parent = view == null ? null : (ViewGroup) view.getParent();
         if (parent != null) {
@@ -333,6 +382,56 @@ public class PlayFragment extends Fragment implements TextureView.SurfaceTexture
 
         cover.setVisibility(View.GONE);
         sendResult(RESULT_REND_VIDEO_DISPLAY, null);
+    }
+
+    private void showDisconnectPanel() {
+        if (mDisconnectPanel == null)
+            return;
+
+        mDisconnectPanel.setVisibility(View.VISIBLE);
+        if (mDisconnectTip != null) {
+            mDisconnectTip.setText(mHasDisplayedVideo ? "连接已断开，请检查网络" : "连接失败，请检查地址和网络");
+        }
+
+        View view = getView();
+        if (view != null) {
+            view.findViewById(android.R.id.progress).setVisibility(View.GONE);
+        }
+
+        mHandler.removeCallbacks(mStreamCheckRunnable);
+        mLastCheckLength = getReceivedStreamLength();
+        mHandler.postDelayed(mStreamCheckRunnable, 1000);
+    }
+
+    private void hideDisconnectPanel() {
+        mHandler.removeCallbacks(mStreamCheckRunnable);
+
+        if (mDisconnectPanel != null) {
+            mDisconnectPanel.setVisibility(View.GONE);
+        }
+    }
+
+    // 断开后手动重连
+    private void reconnect() {
+        if (mSurfaceView == null)
+            return;
+
+        SurfaceTexture surface = mSurfaceView.getSurfaceTexture();
+        if (surface == null)
+            surface = mSurfaceTexture;
+        if (surface == null)
+            return;
+
+        hideDisconnectPanel();
+
+        View view = getView();
+        if (view != null) {
+            view.findViewById(android.R.id.progress).setVisibility(View.VISIBLE);
+        }
+
+        stopRending();
+        mLastCheckLength = 0;
+        startRending(surface);
     }
 
     public boolean onRecordOrStop() {
